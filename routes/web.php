@@ -12,6 +12,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EventTypeController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\DecorationCategoryController;
+use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\BusinessSettingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BackupController;
@@ -63,6 +64,9 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('/decoration-categories/{decorationCategory}/toggle', [DecorationCategoryController::class, 'toggleStatus'])->name('decoration-categories.toggle');
     Route::resource('decoration-categories', DecorationCategoryController::class)->except(['show', 'destroy']);
+
+    Route::patch('/expense-categories/{expenseCategory}/toggle', [ExpenseCategoryController::class, 'toggleStatus'])->name('expense-categories.toggle');
+    Route::resource('expense-categories', ExpenseCategoryController::class)->except(['show']);
 
     // Admin-Only Routes
     Route::middleware('admin')->group(function () {

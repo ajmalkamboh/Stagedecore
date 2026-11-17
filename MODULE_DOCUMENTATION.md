@@ -64,6 +64,11 @@
 - **Decoration Categories** (`/decoration-categories`):
   - Stage packages: Basic Stage, Premium Stage, Luxury Stage, Floral Decoration, Custom Decoration, Other.
   - Stores package descriptions, specifications, base price, and active toggle.
+- **Expense Categories** (`/expense-categories`):
+  - Standard categories: Flowers, Decoration Material, Labour Charges, Transportation, Lighting, Equipment Rental, Stage Material, Refreshments, Miscellaneous, Other.
+  - Add, edit, and toggle active status (`Active` / `Inactive`).
+  - Search categories by name or description with real-time expense counter.
+  - Deletion protection: System strictly prevents deleting categories with linked expense transactions to maintain financial audit integrity.
 
 ---
 

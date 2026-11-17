@@ -163,6 +163,13 @@
                                     </div>
                                 </a>
 
+                                <a class="nav-link {{ request()->routeIs('expense-categories.*') ? 'active' : '' }}" href="{{ route('expense-categories.index') }}">
+                                    <div class="d-flex align-items-center">
+                                        <span class="nav-link-icon"><span class="fas fa-tags"></span></span>
+                                        <span class="nav-link-text ps-1">Expense Categories</span>
+                                    </div>
+                                </a>
+
                                 @if(auth()->user() && auth()->user()->isAdmin())
                                 <a class="nav-link {{ request()->routeIs('settings.business') ? 'active' : '' }}" href="{{ route('settings.business') }}">
                                     <div class="d-flex align-items-center">

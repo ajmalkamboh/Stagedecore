@@ -3,10 +3,10 @@
 ## Summary
 - **Test Framework**: PHPUnit 12.5.44
 - **Database Engine**: MySQL 8.4 (Production), SQLite in-memory (Automated Tests)
-- **Total Tests Executed**: 28
-- **Total Assertions**: 112
-- **Pass Rate**: 100% (28 passed, 0 failed, 0 errors)
-- **Execution Time**: ~7.8 seconds
+- **Total Tests Executed**: 34
+- **Total Assertions**: 128
+- **Pass Rate**: 100% (34 passed, 0 failed, 0 errors)
+- **Execution Time**: ~7.4 seconds
 
 ---
 
@@ -68,3 +68,11 @@
   - Net Profit equals Eligible Sales minus Total Expenses.
   - Net Cash Movement equals Actual Receipts minus Refunds minus Expenses Paid. **[PASSED]**
 - `test_database_backup_download`: Verifies streamed SQL database backup produces valid SQL content-type download. **[PASSED]**
+
+### 9. Expense Category Master Data (`tests/Feature/ExpenseCategoryTest.php`)
+- `test_expense_categories_screen_can_be_rendered`: Verifies index table renders with categories, status badges, and action buttons. **[PASSED]**
+- `test_can_create_expense_category`: Verifies creating new expense category persists with name, description, and active status. **[PASSED]**
+- `test_can_update_expense_category`: Verifies updating expense category updates details in database. **[PASSED]**
+- `test_can_toggle_expense_category_status`: Verifies status toggles between active and inactive. **[PASSED]**
+- `test_cannot_delete_expense_category_with_existing_expenses`: Verifies deletion is prevented and redirected with warning when category has linked expense records. **[PASSED]**
+- `test_can_delete_unused_expense_category`: Verifies unused expense category is safely deleted. **[PASSED]**
