@@ -3,10 +3,10 @@
 ## Summary
 - **Test Framework**: PHPUnit 12.5.44
 - **Database Engine**: MySQL 8.4 (Production), SQLite in-memory (Automated Tests)
-- **Total Tests Executed**: 34
-- **Total Assertions**: 128
-- **Pass Rate**: 100% (34 passed, 0 failed, 0 errors)
-- **Execution Time**: ~7.4 seconds
+- **Total Tests Executed**: 40
+- **Total Assertions**: 151
+- **Pass Rate**: 100% (40 passed, 0 failed, 0 errors)
+- **Execution Time**: ~4.7 seconds
 
 ---
 
@@ -76,3 +76,11 @@
 - `test_can_toggle_expense_category_status`: Verifies status toggles between active and inactive. **[PASSED]**
 - `test_cannot_delete_expense_category_with_existing_expenses`: Verifies deletion is prevented and redirected with warning when category has linked expense records. **[PASSED]**
 - `test_can_delete_unused_expense_category`: Verifies unused expense category is safely deleted. **[PASSED]**
+
+### 10. Venue Commission & Referral Management (`tests/Feature/VenueCommissionTest.php`)
+- `test_venue_can_be_created_with_default_commission`: Verifies setting default commission rate and type on a venue persists. **[PASSED]**
+- `test_can_create_booking_with_percentage_commission`: Verifies percentage commission auto-computes from final amount and marks status as pending. **[PASSED]**
+- `test_can_create_booking_with_fixed_commission`: Verifies fixed cash commission is recorded and marked pending. **[PASSED]**
+- `test_can_record_commission_payout_and_creates_expense`: Verifies payout updates booking status to `paid`, stores paid date/mode/recipient, and automatically generates linked `Expense` under "Venue Commission / Referral Fee". **[PASSED]**
+- `test_cannot_repay_already_paid_commission`: Verifies guard against accidental duplicate payouts. **[PASSED]**
+- `test_commission_screens_render_successfully`: Verifies Commission Dashboard (`/commissions`), Official Printable Voucher (`/commissions/{id}/voucher`), and Venue Commission Statements Report (`/commissions/report`) all return HTTP 200 with accurate figures. **[PASSED]**

@@ -190,6 +190,19 @@
                             <td class="fw-bold text-danger">Remaining Balance:</td>
                             <td class="text-end fw-bolder fs-9 text-danger">{{ $globalSettings->currency_symbol ?? 'Rs.' }} {{ number_format($booking->remaining_balance, 2) }}</td>
                         </tr>
+                        @if($booking->has_commission)
+                        <tr>
+                            <td class="text-600">
+                                <span class="fas fa-hand-holding-usd text-warning me-1"></span> Venue Commission:
+                            </td>
+                            <td class="text-end fw-bold {{ $booking->commission_status === 'paid' ? 'text-success' : 'text-warning' }}">
+                                {{ $globalSettings->currency_symbol ?? 'Rs.' }} {{ number_format($booking->commission_amount, 2) }}
+                                <span class="badge bg-{{ $booking->commission_status === 'paid' ? 'success' : 'warning' }}-subtle text-{{ $booking->commission_status === 'paid' ? 'success' : 'warning' }} fs-11 ms-1">
+                                    {{ ucfirst($booking->commission_status) }}
+                                </span>
+                            </td>
+                        </tr>
+                        @endif
                     </tbody>
                 </table>
 
@@ -328,6 +341,128 @@
         </div>
     </div>
 </div>
+
+<!-- Venue Commission Section -->
+@if($booking->has_commission)
+<div class="card mb-3">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0 fs-10 fw-bold text-900">
+            <span class="fas fa-hand-holding-usd text-warning me-2"></span>Venue / Marquee Referral Commission
+        </h6>
+        <div>
+            @if($booking->commission_status === 'pending')
+                <button type="button" class="btn btn-warning btn-sm py-1" data-bs-toggle="modal" data-bs-target="#payBookingCommissionModal">
+                    <span class="fas fa-hand-holding-usd me-1"></span> Pay Commission
+                </button>
+            @else
+                <a href="{{ route('commissions.voucher', $booking) }}" target="_blank" class="btn btn-falcon-default btn-sm py-1">
+                    <span class="fas fa-print me-1"></span> Print Voucher
+                </a>
+            @endif
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center g-3">
+            <div class="col-md-3">
+                <span class="fs-11 text-muted text-uppercase fw-bold d-block">Venue Partner:</span>
+                <span class="fs-10 fw-bold text-dark">{{ $booking->venue?->name ?? 'Custom Venue' }}</span>
+                <div class="fs-11 text-muted">{{ $booking->venue?->venue_type ?? 'Event Venue' }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="fs-11 text-muted text-uppercase fw-bold d-block">Commission Payable:</span>
+                <span class="fs-9 fw-bold text-danger">{{ $globalSettings->currency_symbol ?? 'Rs.' }} {{ number_format($booking->commission_amount, 2) }}</span>
+                <div class="fs-11 text-muted">
+                    @if($booking->commission_type === 'percentage')
+                        {{ number_format($booking->commission_rate, 1) }}% of Final Amount
+                    @else
+                        Fixed Cash Amount
+                    @endif
+                </div>
+            </div>
+            <div class="col-md-3">
+                <span class="fs-11 text-muted text-uppercase fw-bold d-block">Commission Status:</span>
+                @if($booking->commission_status === 'paid')
+                    <span class="badge bg-success-subtle text-success fs-10"><span class="fas fa-check-circle me-1"></span>Paid</span>
+                    <div class="fs-11 text-muted">Paid on {{ $booking->commission_paid_at?->format('d M, Y') }} via {{ strtoupper(str_replace('_', ' ', $booking->commission_payment_method)) }}</div>
+                @else
+                    <span class="badge bg-warning-subtle text-warning fs-10"><span class="fas fa-hourglass-half me-1"></span>Pending (Unpaid)</span>
+                @endif
+            </div>
+            <div class="col-md-3">
+                <span class="fs-11 text-muted text-uppercase fw-bold d-block">Recipient / Notes:</span>
+                <span class="fs-10 fw-bold text-800">{{ $booking->commission_recipient ?? 'Venue Management' }}</span>
+                @if($booking->commission_notes)
+                <div class="fs-11 text-muted">{{ $booking->commission_notes }}</div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+@if($booking->commission_status === 'pending')
+<!-- Modal: Pay Commission for Booking -->
+<div class="modal fade" id="payBookingCommissionModal" tabindex="-1" aria-labelledby="payBookingCommissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('commissions.pay', $booking) }}">
+                @csrf
+                <div class="modal-header bg-warning-subtle">
+                    <h5 class="modal-title fs-9 fw-bold text-dark" id="payBookingCommissionModalLabel">
+                        <span class="fas fa-hand-holding-usd me-2 text-warning"></span>Pay Venue Commission
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 fs-10 mb-3">
+                        Recording this payment will automatically log an expense under <strong>"Venue Commission / Referral Fee"</strong>.
+                    </div>
+
+                    <div class="mb-2">
+                        <span class="fw-bold">Booking:</span> <span class="text-primary fw-bold">{{ $booking->booking_number }}</span> &bull; 
+                        <span class="fw-bold">Venue:</span> <span class="text-800">{{ $booking->venue?->name ?? 'Custom Venue' }}</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="b_paid_amount">Payout Amount ({{ $globalSettings->currency_symbol ?? 'Rs.' }}) <span class="text-danger">*</span></label>
+                            <input class="form-control" type="number" step="0.01" min="0.01" id="b_paid_amount" name="paid_amount" value="{{ $booking->commission_amount }}" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="b_paid_date">Date Paid <span class="text-danger">*</span></label>
+                            <input class="form-control" type="date" id="b_paid_date" name="paid_date" value="{{ date('Y-m-d') }}" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="b_payment_method">Payment Method <span class="text-danger">*</span></label>
+                            <select class="form-select" id="b_payment_method" name="payment_method" required>
+                                <option value="cash" selected>Cash</option>
+                                <option value="bank">Bank Transfer</option>
+                                <option value="online_transfer">Online (Raast / JazzCash / Easypaisa)</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="b_recipient">Paid To (Recipient) <span class="text-danger">*</span></label>
+                            <input class="form-control" type="text" id="b_recipient" name="recipient" value="{{ $booking->commission_recipient ?? $booking->venue?->name }}" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold" for="b_notes">Remarks / Transaction Details</label>
+                            <textarea class="form-control" id="b_notes" name="notes" rows="2" placeholder="e.g. Paid in cash at venue reception">{{ $booking->commission_notes }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4">
+                        <span class="fas fa-check me-1"></span> Confirm &amp; Save Payout
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+@endif
 
 <!-- Status Update Modal -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">

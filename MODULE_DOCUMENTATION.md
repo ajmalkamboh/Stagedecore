@@ -159,3 +159,27 @@
   - Official A4 printable confirmation with business header, client details, schedule, venue, stage decoration specifications, financial breakdown, advance paid, remaining balance, terms & conditions, and signature blocks.
 - **Payment Receipt (`/payments/{payment}/receipt`)**:
   - Official payment receipt and refund voucher with customer info, booking reference, payment method, transaction reference, amount received, and updated remaining balance.
+- **Venue Commission Voucher (`/commissions/{booking}/voucher`)**:
+  - Official printable voucher acknowledging referral commission payout with partner venue details, calculation breakdown, payment method, and signature acknowledgment section for hall representative and decorator.
+
+---
+
+## 12. Venue Commission & Referral Management (Method 2)
+- **Routes**:
+  - `GET /commissions`: Main dashboard & tracking table
+  - `POST /commissions/{booking}/pay`: Record commission payout
+  - `GET /commissions/{booking}/voucher`: Official printable payout voucher
+  - `GET /commissions/report`: Venue-wise Commission Statements & Ledger
+- **Features**:
+  - **Default Venue Rates**: Marriage halls, marquees, and farmhouses can have preset default commissions (`percentage` or `fixed cash`) in venue master settings.
+  - **Booking Integration**:
+    - Optional "Pay Commission to Venue" toggle on booking form.
+    - Automatic pre-fill of commission rate and recipient when venue is selected.
+    - Real-time calculation of commission payable based on final booking amount.
+  - **Payout Recording & Automated Accounting**:
+    - Recording payout marks booking commission status as `Paid`.
+    - Automatically generates an `Expense` transaction under **"Venue Commission / Referral Fee"** tied to the booking.
+    - Prevents double payouts and automatically updates Overall Profit/Loss and Net Cash Movement statements.
+  - **Venue Commission Statements (`/commissions/report`)**:
+    - Comprehensive ledger grouped by partner venue showing total events, total revenue, commission payable, commission settled, and outstanding pending dues.
+    - Expandable event breakdown for each venue.

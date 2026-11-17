@@ -81,6 +81,11 @@ class BookingController extends Controller
             'advance_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'in:cash,bank,online_transfer,cheque,other'],
             'transaction_reference' => ['nullable', 'string', 'max:100'],
+            'has_commission' => ['nullable', 'boolean'],
+            'commission_type' => ['nullable', 'in:none,percentage,fixed'],
+            'commission_rate' => ['nullable', 'numeric', 'min:0'],
+            'commission_recipient' => ['nullable', 'string', 'max:191'],
+            'commission_notes' => ['nullable', 'string'],
             'status' => ['required', 'in:tentative,confirmed'],
         ]);
 
@@ -88,6 +93,20 @@ class BookingController extends Controller
         $discount = (float) ($validated['discount'] ?? 0);
         $finalAmount = max(0, $totalAmount - $discount);
         $advanceAmount = (float) ($validated['advance_amount'] ?? 0);
+
+        // Commission calculation
+        $hasCommission = $request->boolean('has_commission');
+        $commissionType = $hasCommission ? ($request->input('commission_type', 'none')) : 'none';
+        $commissionRate = $hasCommission ? (float) ($request->input('commission_rate', 0)) : 0;
+        $commissionAmount = 0.00;
+
+        if ($hasCommission && $commissionType === 'percentage') {
+            $commissionAmount = round(($finalAmount * $commissionRate) / 100, 2);
+        } elseif ($hasCommission && $commissionType === 'fixed') {
+            $commissionAmount = round($commissionRate, 2);
+        }
+
+        $commissionStatus = ($hasCommission && $commissionAmount > 0) ? 'pending' : 'none';
 
         if ($advanceAmount > $finalAmount) {
             return back()->withInput()->withErrors([
@@ -104,7 +123,19 @@ class BookingController extends Controller
             $validated['event_end_time'] ?? null
         );
 
-        return DB::transaction(function () use ($validated, $totalAmount, $discount, $finalAmount, $advanceAmount, $overlapWarning) {
+        return DB::transaction(function () use (
+            $validated,
+            $totalAmount,
+            $discount,
+            $finalAmount,
+            $advanceAmount,
+            $hasCommission,
+            $commissionType,
+            $commissionRate,
+            $commissionAmount,
+            $commissionStatus,
+            $overlapWarning
+        ) {
             $booking = Booking::create([
                 'booking_number' => Booking::generateBookingNumber(),
                 'customer_id' => $validated['customer_id'],
@@ -122,6 +153,13 @@ class BookingController extends Controller
                 'total_amount' => $totalAmount,
                 'discount' => $discount,
                 'final_amount' => $finalAmount,
+                'has_commission' => $hasCommission && $commissionAmount > 0,
+                'commission_type' => $commissionType,
+                'commission_rate' => $commissionRate,
+                'commission_amount' => $commissionAmount,
+                'commission_recipient' => $hasCommission ? ($validated['commission_recipient'] ?? null) : null,
+                'commission_status' => $commissionStatus,
+                'commission_notes' => $hasCommission ? ($validated['commission_notes'] ?? null) : null,
                 'status' => $validated['status'],
                 'created_by' => auth()->id(),
             ]);
@@ -218,11 +256,16 @@ class BookingController extends Controller
         if (!$isFinancialLocked) {
             $rules['total_amount'] = ['required', 'numeric', 'min:0'];
             $rules['discount'] = ['nullable', 'numeric', 'min:0'];
+            $rules['has_commission'] = ['nullable', 'boolean'];
+            $rules['commission_type'] = ['nullable', 'in:none,percentage,fixed'];
+            $rules['commission_rate'] = ['nullable', 'numeric', 'min:0'];
+            $rules['commission_recipient'] = ['nullable', 'string', 'max:191'];
+            $rules['commission_notes'] = ['nullable', 'string'];
         }
 
         $validated = $request->validate($rules);
 
-        return DB::transaction(function () use ($validated, $booking, $isFinancialLocked) {
+        return DB::transaction(function () use ($request, $validated, $booking, $isFinancialLocked) {
             if (!$isFinancialLocked) {
                 $totalAmount = (float) $validated['total_amount'];
                 $discount = (float) ($validated['discount'] ?? 0);
@@ -231,6 +274,27 @@ class BookingController extends Controller
                 $booking->total_amount = $totalAmount;
                 $booking->discount = $discount;
                 $booking->final_amount = $finalAmount;
+
+                if ($booking->commission_status !== 'paid') {
+                    $hasCommission = $request->boolean('has_commission');
+                    $commissionType = $hasCommission ? ($request->input('commission_type', 'none')) : 'none';
+                    $commissionRate = $hasCommission ? (float) ($request->input('commission_rate', 0)) : 0;
+                    $commissionAmount = 0.00;
+
+                    if ($hasCommission && $commissionType === 'percentage') {
+                        $commissionAmount = round(($finalAmount * $commissionRate) / 100, 2);
+                    } elseif ($hasCommission && $commissionType === 'fixed') {
+                        $commissionAmount = round($commissionRate, 2);
+                    }
+
+                    $booking->has_commission = $hasCommission && $commissionAmount > 0;
+                    $booking->commission_type = $commissionType;
+                    $booking->commission_rate = $commissionRate;
+                    $booking->commission_amount = $commissionAmount;
+                    $booking->commission_recipient = $hasCommission ? ($request->input('commission_recipient')) : null;
+                    $booking->commission_status = ($hasCommission && $commissionAmount > 0) ? 'pending' : 'none';
+                    $booking->commission_notes = $hasCommission ? ($request->input('commission_notes')) : null;
+                }
             }
 
             if ($validated['status'] === 'cancelled' && $booking->status !== 'cancelled') {

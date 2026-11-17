@@ -127,6 +127,13 @@
                                     </div>
                                 </a>
 
+                                <a class="nav-link {{ request()->routeIs('commissions.*') ? 'active' : '' }}" href="{{ route('commissions.index') }}">
+                                    <div class="d-flex align-items-center">
+                                        <span class="nav-link-icon"><span class="fas fa-hand-holding-usd"></span></span>
+                                        <span class="nav-link-text ps-1">Venue Commissions</span>
+                                    </div>
+                                </a>
+
                                 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}">
                                     <div class="d-flex align-items-center">
                                         <span class="nav-link-icon"><span class="fas fa-file-invoice-dollar"></span></span>

@@ -16,6 +16,7 @@ use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\BusinessSettingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\VenueCommissionController;
 
 // Guest Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -51,6 +52,12 @@ Route::middleware('auth')->group(function () {
 
     // Expense Management
     Route::resource('expenses', ExpenseController::class)->except(['show']);
+
+    // Venue Commission & Referral Management
+    Route::get('/commissions', [VenueCommissionController::class, 'index'])->name('commissions.index');
+    Route::get('/commissions/report', [VenueCommissionController::class, 'report'])->name('commissions.report');
+    Route::get('/commissions/{booking}/voucher', [VenueCommissionController::class, 'voucher'])->name('commissions.voucher');
+    Route::post('/commissions/{booking}/pay', [VenueCommissionController::class, 'pay'])->name('commissions.pay');
 
     // Financial Reports & Profit/Loss
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

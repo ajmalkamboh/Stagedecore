@@ -27,8 +27,13 @@ class VenueController extends Controller
             'address' => ['nullable', 'string'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string'],
+            'default_commission_type' => ['nullable', 'in:none,percentage,fixed'],
+            'default_commission_rate' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['required', 'boolean'],
         ]);
+
+        $validated['default_commission_type'] = $validated['default_commission_type'] ?? 'none';
+        $validated['default_commission_rate'] = $validated['default_commission_rate'] ?? 0;
 
         Venue::create($validated);
 
@@ -49,8 +54,13 @@ class VenueController extends Controller
             'address' => ['nullable', 'string'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string'],
+            'default_commission_type' => ['nullable', 'in:none,percentage,fixed'],
+            'default_commission_rate' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['required', 'boolean'],
         ]);
+
+        $validated['default_commission_type'] = $validated['default_commission_type'] ?? 'none';
+        $validated['default_commission_rate'] = $validated['default_commission_rate'] ?? 0;
 
         $venue->update($validated);
 

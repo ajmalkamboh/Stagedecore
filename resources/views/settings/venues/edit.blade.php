@@ -46,9 +46,35 @@
                 <div class="col-md-6">
                     <label class="form-label fw-bold" for="is_active">Status <span class="text-danger">*</span></label>
                     <select class="form-select @error('is_active') is-invalid @enderror" id="is_active" name="is_active" required>
-                        <option value="1" {{ old('is_active', (string)(int)$venue->is_active) == '1' ? 'selected' : '' }}>Active</option>
-                        <option value="0" {{ old('is_active', (string)(int)$venue->is_active) == '0' ? 'selected' : '' }}>Inactive</option>
+                        <option value="1" {{ old('is_active', $venue->is_active ? '1' : '0') == '1' ? 'selected' : '' }}>Active</option>
+                        <option value="0" {{ old('is_active', $venue->is_active ? '1' : '0') == '0' ? 'selected' : '' }}>Inactive</option>
                     </select>
+                </div>
+
+                <!-- Default Venue Commission -->
+                <div class="col-12">
+                    <div class="card border border-200">
+                        <div class="card-header bg-light py-2">
+                            <h6 class="mb-0 fs-10 text-700 fw-bold"><span class="fas fa-hand-holding-usd text-warning me-2"></span>Default Referral / Venue Commission (Optional)</h6>
+                        </div>
+                        <div class="card-body bg-body-tertiary py-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fs-10 fw-bold" for="default_commission_type">Commission Type</label>
+                                    <select class="form-select form-select-sm" id="default_commission_type" name="default_commission_type">
+                                        <option value="none" {{ old('default_commission_type', $venue->default_commission_type) == 'none' ? 'selected' : '' }}>No Commission Required</option>
+                                        <option value="percentage" {{ old('default_commission_type', $venue->default_commission_type) == 'percentage' ? 'selected' : '' }}>Percentage of Booking Amount (%)</option>
+                                        <option value="fixed" {{ old('default_commission_type', $venue->default_commission_type) == 'fixed' ? 'selected' : '' }}>Fixed Amount per Event (Rs.)</option>
+                                    </select>
+                                    <small class="text-muted">If this marquee/hall charges standard commission, select here to auto-apply on booking form.</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fs-10 fw-bold" for="default_commission_rate">Default Commission Rate / Amount</label>
+                                    <input class="form-control form-control-sm" id="default_commission_rate" type="number" step="0.01" min="0" name="default_commission_rate" value="{{ old('default_commission_rate', $venue->default_commission_rate) }}" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-12">

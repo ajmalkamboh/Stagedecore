@@ -119,7 +119,7 @@
                             <select class="form-select @error('venue_id') is-invalid @enderror" id="venue_id" name="venue_id">
                                 <option value="">-- Or enter custom address below --</option>
                                 @foreach($venues as $v)
-                                <option value="{{ $v->id }}" data-address="{{ $v->address }}" {{ old('venue_id') == $v->id ? 'selected' : '' }}>
+                                <option value="{{ $v->id }}" data-address="{{ $v->address }}" data-commission-type="{{ $v->default_commission_type ?? 'none' }}" data-commission-rate="{{ $v->default_commission_rate ?? 0 }}" data-contact="{{ $v->contact_number }}" {{ old('venue_id') == $v->id ? 'selected' : '' }}>
                                     {{ $v->name }} ({{ $v->venue_type }})
                                 </option>
                                 @endforeach
@@ -239,6 +239,46 @@
                 </div>
             </div>
 
+            <!-- Section 4: Venue / Marquee Commission (Optional) -->
+            <div class="card mb-3 border">
+                <div class="card-header bg-200 py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fs-10 fw-bold text-700">
+                        <span class="fas fa-hand-holding-usd me-2 text-warning"></span>4. Venue / Marquee Referral Commission (Optional)
+                    </h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="has_commission" name="has_commission" value="1" {{ old('has_commission') ? 'checked' : '' }}>
+                        <label class="form-check-label fs-10 fw-bold" for="has_commission">Pay Commission to Venue</label>
+                    </div>
+                </div>
+                <div class="card-body" id="commission_fields_container" style="{{ old('has_commission') ? '' : 'display: none;' }}">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" for="commission_type">Commission Type</label>
+                            <select class="form-select @error('commission_type') is-invalid @enderror" id="commission_type" name="commission_type">
+                                <option value="percentage" {{ old('commission_type', 'percentage') == 'percentage' ? 'selected' : '' }}>Percentage of Final Amount (%)</option>
+                                <option value="fixed" {{ old('commission_type') == 'fixed' ? 'selected' : '' }}>Fixed Cash Amount ({{ $globalSettings->currency_symbol ?? 'Rs.' }})</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" for="commission_rate">Rate / Amount</label>
+                            <input class="form-control @error('commission_rate') is-invalid @enderror" id="commission_rate" type="number" step="0.01" min="0" name="commission_rate" value="{{ old('commission_rate', '0.00') }}" placeholder="e.g. 10 for 10% or 15000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" for="commission_amount_display">Calculated Commission</label>
+                            <input class="form-control bg-light fw-bold text-danger fs-9" id="commission_amount_display" type="text" readonly value="0.00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" for="commission_recipient">Payable To (Recipient)</label>
+                            <input class="form-control @error('commission_recipient') is-invalid @enderror" id="commission_recipient" type="text" name="commission_recipient" value="{{ old('commission_recipient') }}" placeholder="e.g. Hall Manager Aslam" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold" for="commission_notes">Commission Notes / Agreement Details</label>
+                            <input class="form-control @error('commission_notes') is-invalid @enderror" id="commission_notes" type="text" name="commission_notes" value="{{ old('commission_notes') }}" placeholder="e.g. Referral cut to be settled after event setup completion" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Submit Button -->
             <div class="text-end">
                 <button class="btn btn-primary px-5 py-2 fs-10 fw-bold" type="submit">
@@ -252,7 +292,6 @@
 
 @push('scripts')
 <script>
-document-ready:
 document.addEventListener('DOMContentLoaded', function() {
     const totalInput = document.getElementById('total_amount');
     const discountInput = document.getElementById('discount');
@@ -263,13 +302,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const venueSelect = document.getElementById('venue_id');
     const venueAddressInput = document.getElementById('venue_address');
 
-    // Auto-fill venue address if venue selected
+    // Commission Elements
+    const hasCommissionCheck = document.getElementById('has_commission');
+    const commissionContainer = document.getElementById('commission_fields_container');
+    const commissionTypeSelect = document.getElementById('commission_type');
+    const commissionRateInput = document.getElementById('commission_rate');
+    const commissionAmountDisplay = document.getElementById('commission_amount_display');
+    const commissionRecipientInput = document.getElementById('commission_recipient');
+
+    // Toggle Commission Container
+    if (hasCommissionCheck) {
+        hasCommissionCheck.addEventListener('change', function() {
+            commissionContainer.style.display = this.checked ? 'block' : 'none';
+            recalculateCommission();
+        });
+    }
+
+    // Auto-fill venue address & default venue commission if venue selected
     if (venueSelect) {
         venueSelect.addEventListener('change', function() {
             const selectedOpt = this.options[this.selectedIndex];
             const addr = selectedOpt.getAttribute('data-address');
             if (addr && !venueAddressInput.value) {
                 venueAddressInput.value = addr;
+            }
+
+            // Default Venue Commission Auto-population
+            const commType = selectedOpt.getAttribute('data-commission-type');
+            const commRate = parseFloat(selectedOpt.getAttribute('data-commission-rate') || 0);
+            if (commType && commType !== 'none' && commRate > 0) {
+                hasCommissionCheck.checked = true;
+                commissionContainer.style.display = 'block';
+                commissionTypeSelect.value = commType;
+                commissionRateInput.value = commRate;
+                if (!commissionRecipientInput.value) {
+                    commissionRecipientInput.value = selectedOpt.text.split('(')[0].trim() + ' Management';
+                }
+                recalculateCommission();
             }
         });
     }
@@ -286,6 +355,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function recalculateCommission() {
+        if (!hasCommissionCheck || !hasCommissionCheck.checked) {
+            if (commissionAmountDisplay) commissionAmountDisplay.value = '0.00';
+            return;
+        }
+
+        const total = parseFloat(totalInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        const finalAmount = Math.max(0, total - discount);
+        const type = commissionTypeSelect.value;
+        const rate = parseFloat(commissionRateInput.value) || 0;
+
+        let comm = 0;
+        if (type === 'percentage') {
+            comm = (finalAmount * rate) / 100;
+        } else {
+            comm = rate;
+        }
+
+        if (commissionAmountDisplay) {
+            commissionAmountDisplay.value = "{{ $globalSettings->currency_symbol ?? 'Rs.' }} " + comm.toFixed(2);
+        }
+    }
+
     function recalculate() {
         const total = parseFloat(totalInput.value) || 0;
         const discount = parseFloat(discountInput.value) || 0;
@@ -296,11 +389,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         finalDisplay.value = finalAmount.toFixed(2);
         balanceDisplay.textContent = "{{ $globalSettings->currency_symbol ?? 'Rs.' }} " + remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        recalculateCommission();
     }
 
     totalInput.addEventListener('input', recalculate);
     discountInput.addEventListener('input', recalculate);
     advanceInput.addEventListener('input', recalculate);
+    if (commissionTypeSelect) commissionTypeSelect.addEventListener('change', recalculateCommission);
+    if (commissionRateInput) commissionRateInput.addEventListener('input', recalculateCommission);
 
     recalculate();
 });

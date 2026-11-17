@@ -29,6 +29,17 @@ class Booking extends Model
         'total_amount',
         'discount',
         'final_amount',
+        'has_commission',
+        'commission_type',
+        'commission_rate',
+        'commission_amount',
+        'commission_recipient',
+        'commission_status',
+        'commission_paid_amount',
+        'commission_paid_at',
+        'commission_payment_method',
+        'commission_notes',
+        'commission_expense_id',
         'status',
         'cancellation_reason',
         'cancelled_at',
@@ -41,6 +52,11 @@ class Booking extends Model
         'total_amount' => 'decimal:2',
         'discount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'has_commission' => 'boolean',
+        'commission_rate' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'commission_paid_amount' => 'decimal:2',
+        'commission_paid_at' => 'date',
         'cancelled_at' => 'datetime',
     ];
 
@@ -72,6 +88,11 @@ class Booking extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
+    }
+
+    public function commissionExpense(): BelongsTo
+    {
+        return $this->belongsTo(Expense::class, 'commission_expense_id');
     }
 
     public function creator(): BelongsTo
@@ -109,6 +130,14 @@ class Booking extends Model
             return 0.00;
         }
         return (float) $this->final_amount - $this->total_expenses;
+    }
+
+    public function getPendingCommissionAttribute(): float
+    {
+        if ($this->has_commission && $this->commission_status === 'pending') {
+            return (float) $this->commission_amount;
+        }
+        return 0.00;
     }
 
     public function getPaymentStatusAttribute(): string

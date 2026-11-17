@@ -200,6 +200,68 @@
                 </div>
             </div>
 
+            <!-- Section 4: Venue / Marquee Referral Commission -->
+            <div class="card mb-3 border">
+                <div class="card-header bg-200 py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fs-10 fw-bold text-700">
+                        <span class="fas fa-hand-holding-usd me-2 text-warning"></span>4. Venue / Marquee Referral Commission
+                    </h6>
+                    @if($booking->commission_status === 'paid')
+                        <span class="badge bg-success-subtle text-success fs-11">
+                            <span class="fas fa-check-circle me-1"></span>Commission Paid (Locked)
+                        </span>
+                    @else
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="has_commission" name="has_commission" value="1" {{ old('has_commission', $booking->has_commission) ? 'checked' : '' }}>
+                            <label class="form-check-label fs-10 fw-bold" for="has_commission">Pay Commission</label>
+                        </div>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @if($booking->commission_status === 'paid')
+                        <div class="alert alert-success py-2 fs-10 mb-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Paid Amount:</strong> {{ $globalSettings->currency_symbol ?? 'Rs.' }} {{ number_format($booking->commission_paid_amount, 2) }}
+                                &bull; <strong>Paid To:</strong> {{ $booking->commission_recipient }}
+                                &bull; <strong>Paid Date:</strong> {{ $booking->commission_paid_at?->format('d M, Y') }}
+                                &bull; <strong>Mode:</strong> {{ strtoupper($booking->commission_payment_method) }}
+                            </div>
+                            <a href="{{ route('commissions.voucher', $booking) }}" target="_blank" class="btn btn-falcon-success btn-sm">
+                                <span class="fas fa-print me-1"></span> Print Voucher
+                            </a>
+                        </div>
+                    @else
+                        <div id="commission_fields_container" style="{{ old('has_commission', $booking->has_commission) ? '' : 'display: none;' }}">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold" for="commission_type">Commission Type</label>
+                                    <select class="form-select @error('commission_type') is-invalid @enderror" id="commission_type" name="commission_type">
+                                        <option value="percentage" {{ old('commission_type', $booking->commission_type) == 'percentage' ? 'selected' : '' }}>Percentage of Final Amount (%)</option>
+                                        <option value="fixed" {{ old('commission_type', $booking->commission_type) == 'fixed' ? 'selected' : '' }}>Fixed Cash Amount ({{ $globalSettings->currency_symbol ?? 'Rs.' }})</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold" for="commission_rate">Rate / Amount</label>
+                                    <input class="form-control @error('commission_rate') is-invalid @enderror" id="commission_rate" type="number" step="0.01" min="0" name="commission_rate" value="{{ old('commission_rate', $booking->commission_rate) }}" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold" for="commission_amount_display">Calculated Commission</label>
+                                    <input class="form-control bg-light fw-bold text-danger fs-9" id="commission_amount_display" type="text" readonly value="{{ $globalSettings->currency_symbol ?? 'Rs.' }} {{ number_format($booking->commission_amount, 2) }}" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold" for="commission_recipient">Payable To (Recipient)</label>
+                                    <input class="form-control @error('commission_recipient') is-invalid @enderror" id="commission_recipient" type="text" name="commission_recipient" value="{{ old('commission_recipient', $booking->commission_recipient) }}" placeholder="e.g. Hall Manager Aslam" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold" for="commission_notes">Commission Notes / Agreement Details</label>
+                                    <input class="form-control @error('commission_notes') is-invalid @enderror" id="commission_notes" type="text" name="commission_notes" value="{{ old('commission_notes', $booking->commission_notes) }}" />
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <div class="text-end">
                 <button class="btn btn-primary px-5 py-2 fs-10 fw-bold" type="submit">
                     <span class="fas fa-save me-1"></span> Update Booking
@@ -233,16 +295,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const discountInput = document.getElementById('discount');
     const finalDisplay = document.getElementById('final_amount_display');
 
+    // Commission elements
+    const hasCommissionCheck = document.getElementById('has_commission');
+    const commissionContainer = document.getElementById('commission_fields_container');
+    const commissionTypeSelect = document.getElementById('commission_type');
+    const commissionRateInput = document.getElementById('commission_rate');
+    const commissionAmountDisplay = document.getElementById('commission_amount_display');
+
+    if (hasCommissionCheck && commissionContainer) {
+        hasCommissionCheck.addEventListener('change', function() {
+            commissionContainer.style.display = this.checked ? 'block' : 'none';
+            recalculateCommission();
+        });
+    }
+
+    function recalculateCommission() {
+        if (!hasCommissionCheck || !hasCommissionCheck.checked) {
+            if (commissionAmountDisplay) commissionAmountDisplay.value = '0.00';
+            return;
+        }
+
+        const total = totalInput ? (parseFloat(totalInput.value) || 0) : {{ (float) $booking->total_amount }};
+        const discount = discountInput ? (parseFloat(discountInput.value) || 0) : {{ (float) $booking->discount }};
+        const finalAmount = Math.max(0, total - discount);
+        const type = commissionTypeSelect ? commissionTypeSelect.value : 'percentage';
+        const rate = commissionRateInput ? (parseFloat(commissionRateInput.value) || 0) : 0;
+
+        let comm = 0;
+        if (type === 'percentage') {
+            comm = (finalAmount * rate) / 100;
+        } else {
+            comm = rate;
+        }
+
+        if (commissionAmountDisplay) {
+            commissionAmountDisplay.value = "{{ $globalSettings->currency_symbol ?? 'Rs.' }} " + comm.toFixed(2);
+        }
+    }
+
     if (totalInput && discountInput && finalDisplay) {
         function recalculate() {
             const total = parseFloat(totalInput.value) || 0;
             const discount = parseFloat(discountInput.value) || 0;
             const finalVal = Math.max(0, total - discount);
             finalDisplay.value = finalVal.toFixed(2);
+            recalculateCommission();
         }
         totalInput.addEventListener('input', recalculate);
         discountInput.addEventListener('input', recalculate);
     }
+
+    if (commissionTypeSelect) commissionTypeSelect.addEventListener('change', recalculateCommission);
+    if (commissionRateInput) commissionRateInput.addEventListener('input', recalculateCommission);
 });
 </script>
 @endpush

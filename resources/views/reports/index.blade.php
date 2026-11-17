@@ -13,6 +13,9 @@
                 <div class="fs-11 text-500">Real transaction audits, accrual sales analysis, and verified cash movements</div>
             </div>
             <div class="col-sm-auto">
+                <a class="btn btn-falcon-warning btn-sm me-2" href="{{ route('commissions.report') }}">
+                    <span class="fas fa-hand-holding-usd me-1"></span> Venue Commissions
+                </a>
                 <button onclick="window.print()" class="btn btn-falcon-default btn-sm">
                     <span class="fas fa-print me-1"></span> Print Report
                 </button>
